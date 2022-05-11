@@ -268,6 +268,20 @@ module.exports = (io, socket) => {
   }
 
   const messageChatroom = async (payload) => {
+    // payload = {
+    //   _id: $currentChatroom._id,
+    //   save: boolean,
+    //   message: {
+    //     senderID: $currentUser._id,
+    //     senderName: $currentUser.name,
+    //     color: $currentUser.color,
+    //     text: $currentUser.text,
+    //     msg: e.target.message.value,
+    //     timestamp: Date.now(),
+    //   },
+    // }
+
+
     try {
       //Double Check socket rooms
       manageSocketRooms(socket, payload.params._id)
