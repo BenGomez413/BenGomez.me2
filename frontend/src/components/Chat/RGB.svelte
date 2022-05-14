@@ -40,6 +40,7 @@
         senderName: $currentUser.name,
         color: $currentUser.color,
         text: $currentUser.text,
+        type: 'rgb',
         msg: e.target.message.value,
         timestamp: Date.now(),
       },

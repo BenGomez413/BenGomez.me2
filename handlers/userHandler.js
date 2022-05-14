@@ -96,10 +96,11 @@ module.exports = (io, socket) => {
   }
 
   const readUser = async (payload, callback) => {
+    // payload = {_id: 'userID', name: userName}
     try {
       const user = await User.findById(payload._id).populate([
-        { path: 'ownedChatrooms', select: 'ownerID name ownerIcon' },
-        { path: 'joinedChatrooms', select: 'ownerID name ownerIcon' },
+        { path: 'ownedChatrooms', select: '_id name ownerIcon' },
+        { path: 'joinedChatrooms', select: '_id name ownerIcon' },
       ])
 
       if (user) {

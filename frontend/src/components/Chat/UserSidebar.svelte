@@ -70,7 +70,10 @@
     }
 
     // console.log(newChatroom)
-    $socket.emit('chatroom:create', newChatroom)
+    $socket.emit('chatroom:create', newChatroom, (response)=>{
+      $currentUser = response.user
+      $currentChatroom = response.chatroom
+    })
     e.target.newRoom.value = ''
   }
   //Join Room

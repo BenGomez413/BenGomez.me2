@@ -53,8 +53,7 @@ const chatroomSchema = new mongoose.Schema({
       },
       type: {
         type: String,
-        required: true,
-        default: 'unknown',
+        default: 'text',
       },
       msg: {
         type: String,

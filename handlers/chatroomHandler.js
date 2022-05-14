@@ -49,15 +49,15 @@ module.exports = (io, socket) => {
     try {
       //0. Setup
       let newChatroom = await new Chatroom(payload)
-      const roomOwner = await User.findById(newChatroom.ownerID)
+      let roomOwner = await User.findById(newChatroom.ownerID)
 
-      //1. owner user exists
+      //1. check owner user exists
       if (roomOwner === null) {
         console.log('User Not Found')
         socket.emit('error', 'User Not Found')
         return
       }
-      //2. owner chose unique name
+      //2. check owner chose unique name
       roomOwner.ownedChatrooms.forEach((room) => {
         if (room.name === newChatroom.name) {
           console.log('Room with this name already exists')
@@ -65,15 +65,15 @@ module.exports = (io, socket) => {
           return
         }
       })
-      //3. room valid match to schema
+      //-- room valid match to schema --
+
       //3.1 Save chatroom/ populate and send to user
       await newChatroom.save()
+      console.log('New Chatroom Created')
       newChatroom = await newChatroom.populate({
         path: 'members',
         select: 'name icon color text',
       })
-      console.log('New Chatroom Created')
-      callback(newChatroom)
 
       //Socket Join Room
       let join = newChatroom._id.toString().match('(.+)')
@@ -95,13 +95,20 @@ module.exports = (io, socket) => {
         { path: 'joinedChatrooms', select: 'ownerID name ownerIcon' },
       ])
       console.log('+ User Updated with new chatroom')
-      socket.emit('user', updatedUser)
+
+      callback({
+        user: updatedUser,
+        chatroom: newChatroom,
+      })
     } catch (error) {
       console.log(`createChatroom Catch Error:${error.message}`)
     }
   }
 
   const readChatroom = async (payload, callback) => {
+    // payload = {
+    //   _id: chatroomID,
+    // }
     try {
       manageSocketRooms(socket, payload._id)
 
@@ -120,7 +127,6 @@ module.exports = (io, socket) => {
       }
     } catch (error) {
       console.log(`readChatroom Catch Error: ${error.message}`)
-      console.log(error)
     }
   }
 
@@ -157,53 +163,54 @@ module.exports = (io, socket) => {
   }
 
   //Chatroom App Specific
-  const joinChatroom = async (payload) => {
+  const joinChatroom = async (payload, callback) => {
+    // payload={
+    //   userID: userID,
+    //   chatroomID: chatroomID
+    // }
     try {
-      manageSocketRooms(socket, payload.chatroomQuery)
+      let user = await User.findById(payload.userID)
+      let chatroom = await Chatroom.findById(payload.chatroomID)
 
-      let chatroomTarget
-      mongoose.isValidObjectId(payload.chatroomQuery)
-        ? (chatroomTarget = { _id: payload.chatroomQuery })
-        : (chatroomTarget = { name: payload.chatroomQuery })
+      //check if user owns or already joined room
+      let updateNeeded = true
+      if (user.ownedChatrooms.includes(chatroom._id)) updateNeeded = false
+      if (user.joinedChatrooms.includes(chatroom._id)) updateNeeded = false
 
-      let chatroom = await Chatroom.findOne(chatroomTarget)
-
-      const chatroomID = chatroom._id
-      console.log(chatroomID)
-      if (payload.userID) {
-        //Add ref to Chatroom
+      if (updateNeeded) {
+        // add user to chatroom
         chatroom = await Chatroom.findByIdAndUpdate(
-          chatroomID,
-          { $addToSet: { members: payload.userID } },
+          chatroom._id,
+          { $addToSet: { members: user._id } },
           { new: true }
-        ).populate({ path: 'members', select: 'name icon color text' })
+        )
 
-        //Add ref to User
-        if (payload.userID != chatroom.ownerID) {
-          const user = await User.findByIdAndUpdate(
-            payload.userID,
-            { $addToSet: { joinedChatrooms: chatroomID } },
-            { new: true }
-          ).populate([
-            { path: 'ownedChatrooms', select: 'name ownerIcon' },
-            { path: 'joinedChatrooms', select: 'name ownerIcon' },
-          ])
-          socket.emit('user', user)
-        }
-
-        io.sockets
-          .in(payload.chatroomQuery)
-          .emit('refresh', { target: 'ALL', message: 'New User Joined Room' })
+        // add chatroom to user
+        user = await User.findByIdAndUpdate(
+          user._id,
+          { $addToSet: { joinedChatrooms: chatroom._id } },
+          { new: true }
+        )
+        console.log(`${user.name} joined ${chatroom.name}`)
       }
 
+      // callback updated user and chatroom
+      await user.populate([
+        { path: 'ownedChatrooms', select: '_id name ownerIcon' },
+        { path: 'joinedChatrooms', select: '_id name ownerIcon' },
+      ])
       await chatroom.populate({
         path: 'members',
         select: 'name icon color text',
       })
+      callback({ user: user, chatroom: chatroom })
 
-      socket.emit('chatroom', chatroom)
+      // Tell everyone connected to socket room that an update was made
+      io.sockets
+        .in(payload.chatroomID)
+        .emit('refresh', { target: 'ALL', message: 'New User Joined Room' })
     } catch (error) {
-      const dummyChatroom = createDummyRoom(payload.chatroomQuery, [
+      const dummyChatroom = createDummyRoom(payload.chatroomID, [
         {
           _id: '...',
           senderID: '...',
@@ -219,7 +226,7 @@ module.exports = (io, socket) => {
           senderName: 'BenGomez.me',
           color: 'rgb(186, 104, 69)',
           text: 'rgb(255,255,255)',
-          msg: `Socket Channel Opened: ${payload.chatroomQuery}`,
+          msg: `Socket Channel Opened: ${payload.chatroomID}`,
           timestamp: new Date(),
         },
         {
@@ -228,13 +235,12 @@ module.exports = (io, socket) => {
           senderName: 'BenGomez.me',
           color: 'rgb(199, 176, 92)',
           text: 'rgb(255,255,255)',
-          msg: 'Messages can be sent but cannot be saved',
+          msg: 'Messages here can be sent but cannot be saved',
           timestamp: new Date(),
         },
       ])
-      socket.emit('chatroom', dummyChatroom)
-      console.log(`joinChatroom Catch Error:`)
-      console.log(error)
+      callback({ chatroom: dummyChatroom })
+      console.log(`joinChatroom Catch Error: ${error.message}`)
     }
   }
 
@@ -269,7 +275,7 @@ module.exports = (io, socket) => {
 
   const messageChatroom = async (payload) => {
     // payload = {
-    //   _id: $currentChatroom._id,
+    //   target: $currentChatroom._id,
     //   save: boolean,
     //   message: {
     //     senderID: $currentUser._id,
@@ -281,14 +287,13 @@ module.exports = (io, socket) => {
     //   },
     // }
 
-
     try {
       //Double Check socket rooms
-      manageSocketRooms(socket, payload.params._id)
-      socket.to(payload.params._id).emit('message', payload.message)
+      manageSocketRooms(socket, payload.target)
+      socket.to(payload.target).emit('message', payload.message)
       //if chatroom exists and save === true then push message to database
-      if (payload.params.save === true) {
-        Chatroom.findByIdAndUpdate(payload.params._id, {
+      if (payload.save === true) {
+        Chatroom.findByIdAndUpdate(payload.target, {
           $push: { messages: payload.message },
         })
       }

@@ -2,7 +2,7 @@
   import { afterUpdate } from 'svelte'
 
   //stores
-  import { loading, socket } from '../../stores/AppStore'
+  import { socket } from '../../stores/AppStore'
   import { currentUser } from '../../stores/UserStore'
   import { currentChatroom } from '../../stores/ChatStore'
 
@@ -15,6 +15,8 @@
   import RGB from './RGB.svelte'
   import Keyboard from './Keyboard.svelte'
   import Gamepad from './Gamepad.svelte'
+
+  let loading = false
 
   //Toggle Chatroom Details Box
   let showDetails = false
@@ -48,36 +50,31 @@
   // Join Room
   const joinRoom = (e) => {
     e.preventDefault()
-    $loading = true
-    const roomID = e.target.joinRoom.value
-    let userNeedsToUpdate = true
+    loading = true
 
-    if (roomID === '') return
-
-    //check if you own this room
-    $currentUser.ownedChatrooms.forEach((room) => {
-      if (room._id === roomID) {
-        $socket.emit('chatroom:join', { chatroomQuery: roomID })
-        console.log(`You Own this Room: ${roomID}`)
-        userNeedsToUpdate = false
-      }
-    })
-    //check if you joined this room
-    $currentUser.joinedChatrooms.forEach((room) => {
-      if (room._id === roomID) {
-        $socket.emit('chatroom:join', { chatroomQuery: roomID })
-        console.log(`You already joined this room: ${roomID}`)
-        userNeedsToUpdate = false
-      }
-    })
-    //This room is new to user so update it
-    if (userNeedsToUpdate === true) {
-      $socket.emit('chatroom:join', {
-        userID: $currentUser._id,
-        chatroomQuery: roomID,
-      })
-    }
+    const inputValue = e.target.joinRoom.value
     e.target.joinRoom.value = ''
+    if (inputValue === '') return
+
+    const payload = {
+      userID: $currentUser._id,
+      chatroomID: inputValue,
+    }
+
+    $socket.emit('chatroom:join', payload, (response) => {
+      if (response.user) {
+        $currentUser = response.user
+      }
+      if (response.chatroom) {
+        $currentChatroom = response.chatroom
+        console.log(
+          '%c Chatroom Joined',
+          'color:rgb(186, 104, 69);font-weight: bold;'
+        )
+        console.dir(response.chatroom)
+      }
+      loading = false
+    })
   }
 
   //Delete Chatroom
@@ -115,15 +112,14 @@
   const sendMessage = (e) => {
     e.preventDefault()
     const payload = {
-      params: {
-        _id: $currentChatroom._id,
-        save: saveState,
-      },
+      target: $currentChatroom._id,
+      save: saveState,
       message: {
         senderID: $currentUser._id,
         senderName: $currentUser.name,
         color: $currentUser.color,
         text: $currentUser.text,
+        type: 'text',
         msg: e.target.message.value,
         timestamp: Date.now(),
       },
@@ -139,6 +135,7 @@
       '%c Message Sent: ',
       'background-color:rgb(199, 176, 92); color:black; font-weight: bold;'
     )
+    console.dir($currentUser)
   }
   //Get message
   $socket.on('message', (data) => {
@@ -229,7 +226,7 @@
         <Message currentUserID={$currentUser._id} {message} />
       {/each}
     {/if}
-    <Loading status={$loading} />
+    <Loading status={loading} />
   </ul>
   <div class="inputs">
     <div class="tabs">

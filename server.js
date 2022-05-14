@@ -25,7 +25,7 @@ const mongoose = require('mongoose')
 mongoose.connect(process.env.MONGODB_URL)
 
 const userHandlers = require('./handlers/userHandler.js')
-const chatroomHandlers = require('./handlers/chatroomHandlers.js')
+const chatroomHandlers = require('./handlers/chatroomHandler.js')
 
 let socketsConnected = 0
 const onConnection = (socket) => {
