@@ -18,6 +18,7 @@
         senderName: $currentUser.name,
         color: $currentUser.color,
         text: $currentUser.text,
+        type: 'keyboard',
         msg: keys.join(),
         timestamp: Date.now(),
       },

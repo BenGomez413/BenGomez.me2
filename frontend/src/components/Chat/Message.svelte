@@ -6,80 +6,60 @@
     msg: 'Default Msg',
     color: 'rgb(61, 132, 153)',
     text: 'white',
+    type: 'text',
     timestamp: new Date(),
   }
 
   import { formatAMPM } from '../../functions/formats'
-
-  const parseMessage = async (msg) => {
-    const rgbRegex = /rgb\(\d+,\d+,\d+\)/g
-    const imgRegex = /^http[^\?]*.(jpg|jpeg|gif|png|tiff|bmp)(\?(.*))?$/gim
-    if (msg.match(rgbRegex)) {
-      return { type: 'rgb', colors: [...msg.matchAll(rgbRegex)] }
-    } else if (msg.match(imgRegex)) {
-      return { type: 'img' }
-    } else {
-      return { type: 'txt' }
-    }
-  }
 </script>
 
 <!-- RGB DIV -->
-
-{#await parseMessage(message.msg)}
-  <li>LOADING...</li>
-{:then parsedInfo}
-  {#if parsedInfo.type === 'rgb'}
-    {#each parsedInfo.colors as color}
-      <li
-        class={message.senderID === currentUserID
-          ? 'message color you'
-          : 'message color'}
-      >
-        <div class="header">
-          <h3>{message.senderName}</h3>
-          <time>{formatAMPM(new Date(message.timestamp))}</time>
-        </div>
-        <div class="color-box">
-          <h2>{color}</h2>
-          <div style="background-color:{color}" />
-        </div>
-      </li>
-    {/each}
-  {/if}
+{#if message.type === 'rgb'}
+  <li
+    class={message.senderID === currentUserID
+      ? 'message color you'
+      : 'message color'}
+  >
+    <div class="header">
+      <h3>{message.senderName}</h3>
+      <time>{formatAMPM(new Date(message.timestamp))}</time>
+    </div>
+    <div class="color-box">
+      <h2>{message.msg}</h2>
+      <div style="background-color:{message.msg}" />
+    </div>
+  </li>
 
   <!-- IMG DIV -->
-  {#if parsedInfo.type === 'img'}
-    <li class={message.senderID === currentUserID ? 'message you' : 'message'}>
-      <div class="header">
-        <h3>{message.senderName}</h3>
-        <time>{formatAMPM(new Date(message.timestamp))}</time>
-      </div>
-      <a href={message.msg} target="_blank">
-        <img
-          class={message.senderID === currentUserID ? 'you' : ''}
-          src={message.msg}
-          alt={message.msg}
-          loading="lazy"
-        />
-      </a>
-    </li>
-  {/if}
+{:else if message.type === 'img'}
+  <li class={message.senderID === currentUserID ? 'message you' : 'message'}>
+    <div class="header">
+      <h3>{message.senderName}</h3>
+      <time>{formatAMPM(new Date(message.timestamp))}</time>
+    </div>
+    <a href={message.msg} target="_blank">
+      <img
+        class={message.senderID === currentUserID ? 'you' : ''}
+        src={message.msg}
+        alt={message.msg}
+        loading="lazy"
+      />
+    </a>
+  </li>
 
   <!-- DEFAULT TO TEXTBOX -->
-  {#if parsedInfo.type === 'txt'}
-    <li class={message.senderID === currentUserID ? 'message you' : 'message'}>
-      <div class="header">
-        <h3>{message.senderName}</h3>
-        <time>{formatAMPM(new Date(message.timestamp))}</time>
-      </div>
+{:else}
+  <li class={message.senderID === currentUserID ? 'message you' : 'message'}>
+    <div class="header">
+      <h3>{message.senderName}</h3>
+      <time>{formatAMPM(new Date(message.timestamp))}</time>
+    </div>
 
-      <p style="background-color: {message.color}; color: {message.text}">
-        {message.msg}
-      </p>
-    </li>
-  {/if}
-{/await}
+    <p style="background-color: {message.color}; color: {message.text}">
+      {message.msg}
+    </p>
+  </li>
+{/if}
 
 <style>
   .message {

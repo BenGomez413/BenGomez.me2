@@ -79,6 +79,7 @@ const chatroomSchema = new mongoose.Schema({
 // SAVE DOCUMENT MIDDLEWARE
 chatroomSchema.pre('save', function (next) {
   this.updatedAt = Date.now()
+  console.log('pre save')
 
   //MESSAGE LIST LIMIT
   const maxMessages = 500
@@ -124,7 +125,6 @@ chatroomSchema.pre(
     next()
   }
 )
-
 chatroomSchema.post('deleteOne', function (doc, next) {
   console.log(`Chatroom Deleted: ${doc.name}`)
   next()

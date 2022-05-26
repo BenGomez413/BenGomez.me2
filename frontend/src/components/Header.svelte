@@ -42,6 +42,14 @@
         on:click={toggleMenu}
       />
       <ul class="SD-list" id="navList">
+        <button
+          bind:this={$currentUser}
+          on:click={() => {
+            $currentUser._id ? switchPage('profile') : switchPage('login')
+          }}
+        >
+          {$currentUser._id ? 'Profile' : 'Login'}
+        </button>
         {#if $currentUser._id}
           <button
             on:click={() => {
@@ -53,15 +61,6 @@
             Logout
           </button>
         {/if}
-
-        <button
-          bind:this={$currentUser}
-          on:click={() => {
-            $currentUser._id ? switchPage('profile') : switchPage('login')
-          }}
-        >
-          {$currentUser._id ? 'Profile' : 'Login'}
-        </button>
       </ul>
     </div>
   </span>
@@ -189,7 +188,6 @@
   .SD-card {
     width: 79.57%;
     cursor: pointer;
- 
   }
 
   .SD-list {

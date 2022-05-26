@@ -18,10 +18,10 @@
   onMount(() => {
     if (localStorage.getItem('currentUser')) {
       $currentUser = JSON.parse(localStorage.getItem('currentUser'))
-      $socket.emit('user:read', {_id: $currentUser._id}, (response) => {
+      $socket.emit('user:read', { _id: $currentUser._id }, (response) => {
         $currentUser = response
         console.log('Auto Login')
-        console.dir(response)
+        // console.dir(response)
       })
     }
   })

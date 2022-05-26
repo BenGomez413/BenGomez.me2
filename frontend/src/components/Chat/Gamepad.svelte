@@ -115,6 +115,7 @@
           senderName: $currentUser.name,
           color: $currentUser.color,
           text: $currentUser.text,
+          type: 'gamepad',
           msg: lastMessage,
           timestamp: Date.now(),
         },

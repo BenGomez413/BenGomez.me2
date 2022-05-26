@@ -282,6 +282,7 @@ module.exports = (io, socket) => {
     //     senderName: $currentUser.name,
     //     color: $currentUser.color,
     //     text: $currentUser.text,
+    //     type: parsedMessage.type,
     //     msg: e.target.message.value,
     //     timestamp: Date.now(),
     //   },
@@ -290,10 +291,11 @@ module.exports = (io, socket) => {
     try {
       //Double Check socket rooms
       manageSocketRooms(socket, payload.target)
+      //Socket emit 
       socket.to(payload.target).emit('message', payload.message)
       //if chatroom exists and save === true then push message to database
       if (payload.save === true) {
-        Chatroom.findByIdAndUpdate(payload.target, {
+        await Chatroom.findByIdAndUpdate(payload.target, {
           $push: { messages: payload.message },
         })
       }

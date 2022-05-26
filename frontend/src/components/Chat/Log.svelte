@@ -107,10 +107,25 @@
     })
   }
 
+  // Parse Message
+  const parseMessage = async (msg) => {
+    const rgbRegex = /rgb\(\d+,\d+,\d+\)/g
+    const imgRegex = /^http[^\?]*.(jpg|jpeg|gif|png|tiff|bmp)(\?(.*))?$/gim
+    if (msg.match(rgbRegex)) {
+      return { type: 'rgb'}
+    } else if (msg.match(imgRegex)) {
+      return { type: 'img' }
+    } else {
+      return { type: 'text' }
+    }
+  }
+
   //Send Message
   let saveState = true
-  const sendMessage = (e) => {
+  const sendMessage = async (e) => {
     e.preventDefault()
+    const parsedMessage = await parseMessage(e.target.message.value)
+    console.log(parsedMessage.type)
     const payload = {
       target: $currentChatroom._id,
       save: saveState,
@@ -119,7 +134,7 @@
         senderName: $currentUser.name,
         color: $currentUser.color,
         text: $currentUser.text,
-        type: 'text',
+        type: parsedMessage.type,
         msg: e.target.message.value,
         timestamp: Date.now(),
       },
